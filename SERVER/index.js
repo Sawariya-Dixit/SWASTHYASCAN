@@ -1,8 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const connectDB = require("./config/db");
-const screeningRoutes = require("./routes/screening");
+// const connectDB = require("./config/database");
+// const screeningRoutes = require("./routes/screening");
 
 const app = express();
 
@@ -14,11 +14,9 @@ app.get("/", (req, res) => {
   res.json({ status: "SwasthyaScan backend is running" });
 });
 
-app.use("/api", screeningRoutes);
+// app.use("/api/v1", screeningRoutes);
 
-connectDB().then(() => {
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-});
+
+app.listen(process.env.PORT || 3000, () => {
+  console.log(`Server is running on port ${process.env.PORT || 3000}`);
+} );
