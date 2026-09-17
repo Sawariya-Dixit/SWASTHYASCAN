@@ -1,13 +1,16 @@
 require("dotenv").config();
 const express = require("express");
-const cors = require("cors");
-// const connectDB = require("./config/database");
-// const screeningRoutes = require("./routes/screening");
 
 const app = express();
+const cors = require("cors");
+const connectDB = require("./config/database");
+// const screeningRoutes = require("./routes/screening");
+
 
 app.use(cors()); // allow frontend (different origin) to call this API
 app.use(express.json());
+
+connectDB();
 
 // Health check — useful to verify the deployed backend is alive
 app.get("/", (req, res) => {
@@ -19,4 +22,4 @@ app.get("/", (req, res) => {
 
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
-} );
+} )
