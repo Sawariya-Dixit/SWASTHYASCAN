@@ -4,7 +4,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const connectDB = require("./config/database");
-// const screeningRoutes = require("./routes/screening");
+ const screeningRoutes = require("./routes/screening");
 
 
 app.use(cors()); // allow frontend (different origin) to call this API
@@ -17,7 +17,7 @@ app.get("/", (req, res) => {
   res.json({ status: "SwasthyaScan backend is running" });
 });
 
-// app.use("/api/v1", screeningRoutes);
+app.use("/api/v1", screeningRoutes);
 
 
 app.listen(process.env.PORT || 3000, () => {
