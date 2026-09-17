@@ -1,7 +1,7 @@
-const ScreeningRecord = require("../models/ScreeningRecord");
+const ScreeningRecord = require("../models/ScreenRecord");
 const { checkRedFlag } = require("../services/redFlagCheck");
 const { getRiskAssessment } = require("../services/bedrockService");
-const { SYMPTOMS } = require("../utils/symptomsList");
+const { SYMPTOMS } = require("../utills/symptomsList");
 
 /**
  * POST /api/screening
