@@ -1,6 +1,6 @@
 const ScreeningRecord = require("../models/ScreenRecord");
 const { checkRedFlag } = require("../services/redFlagCheck");
-const { getRiskAssessment } = require("../services/bedrockService");
+const { getRiskAssessment } = require("../services/AiServicegroq");
 const { SYMPTOMS } = require("../utills/symptomsList");
 
 /**

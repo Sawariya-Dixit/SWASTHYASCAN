@@ -4,6 +4,7 @@ import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Result from "./pages/Result";
 import History from "./pages/History";
+import SymptomForm from "./components/SymptomForm";
 import strings from "./i18n";
 
 export default function App() {
@@ -16,8 +17,9 @@ export default function App() {
         <Navbar lang={lang} setLang={setLang} t={t} />
         <Routes>
           <Route path="/" element={<Home lang={lang} t={t} />} />
+          <Route path="/screen" element={<SymptomForm lang={lang} t={t} />} />
           <Route path="/result" element={<Result t={t} />} />
-          <Route path="/history" element={<History t={t} />} />
+          <Route path="/history" element={<History t={t} lang={lang} />} />
         </Routes>
       </div>
     </BrowserRouter>
