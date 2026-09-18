@@ -100,8 +100,8 @@ export default function History({ t, lang }) {
 
   useEffect(() => {
     axios
-      .get(`${API_BASE}/api/v1/screening/history?deviceId=${getDeviceId()}`)
-      .then((res) => setRecords(res.data))
+      .get(`${API_BASE}/api/v1/history?deviceId=${getDeviceId()}`)
+      .then((res) => setRecords(res.data.records || []))
       .catch(() => setRecords([]))
       .finally(() => setLoading(false));
   }, []);
