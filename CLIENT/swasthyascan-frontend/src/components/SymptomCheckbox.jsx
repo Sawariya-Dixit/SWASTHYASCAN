@@ -2,12 +2,12 @@ export default function SymptomCheckbox({ symptomKey, label, redFlag, checked, o
   return (
     <label
       className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition
-        ${checked ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-green-300"}
+        ${checked ? "border-emerald-500 bg-emerald-50" : "border-gray-200 hover:border-emerald-300"}
         ${redFlag ? "border-l-4 border-l-red-400" : ""}`}
     >
       <input
         type="checkbox"
-        className="accent-green-600 w-4 h-4"
+        className="accent-emerald-600 w-4 h-4"
         checked={checked}
         onChange={() => onChange(symptomKey)}
       />

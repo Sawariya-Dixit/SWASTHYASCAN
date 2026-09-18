@@ -1,7 +1,7 @@
 import RiskBadge from "./RiskBadge";
 
 const riskBorder = {
-  Low: "border-l-green-400",
+  Low: "border-l-emerald-400",
   Medium: "border-l-yellow-400",
   High: "border-l-red-400",
   Urgent: "border-l-red-600",
