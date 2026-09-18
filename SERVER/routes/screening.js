@@ -10,7 +10,7 @@ const {
 } = require("../controllers/screeningController");
 
 // POST /api/screening
-router.post("/", submitScreening);
+router.post("/screening", submitScreening);
 
 // GET /api/screening/history
 router.get("/history", getHistory);
