@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { getDeviceId } from "../deviceId";
+import strings from "../i18n";
+import { getSymptomIcon } from "../utils/symptomsApi";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
@@ -51,7 +53,10 @@ function DetailModal({ record, onClose, lang }) {
           </h3>
           <div className="flex flex-wrap gap-2">
             {symptoms.map((s, i) => (
-              <span key={i} className="bg-white border border-slate-200 shadow-sm text-slate-600 font-medium text-xs px-3 py-1.5 rounded-lg">{s}</span>
+              <span key={i} className="bg-white border border-slate-200 shadow-sm text-slate-600 font-medium text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                <span>{getSymptomIcon(s)}</span>
+                <span>{strings[lang]?.symptoms?.[s] || s}</span>
+              </span>
             ))}
           </div>
         </div>

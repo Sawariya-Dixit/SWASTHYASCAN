@@ -1,50 +1,37 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getDeviceId } from "../deviceId";
+import VoiceSymptomButton from "./VoiceSymptomButton";
+import { matchSymptomsFromText } from "../utils/voiceSymptomMatcher";
+import { fetchSymptomsList, getSymptomIcon } from "../utils/symptomsApi";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
-const DISPLAY_SYMPTOMS = [
-  { key: "fever",                 redFlag: false, icon: "🌡️" },
-  { key: "cough",                 redFlag: false, icon: "😷" },
-  { key: "headache_dizziness",    redFlag: false, icon: "🤕" },
-  { key: "fatigue",               redFlag: false, icon: "😴" },
-  { key: "chest_pain",            redFlag: true,  icon: "❤️" },
-  { key: "severe_breathlessness", redFlag: true,  icon: "💨" },
-  { key: "nausea",                redFlag: false, icon: "🤢" },
-  { key: "vomiting",              redFlag: false, icon: "🤮" },
-  { key: "frequent_thirst",       redFlag: false, icon: "💧" },
-  { key: "frequent_urination",    redFlag: false, icon: "🚿" },
-  { key: "blurred_vision",        redFlag: false, icon: "👁️" },
-  { key: "numbness",              redFlag: false, icon: "🖐️" },
-];
+function checkIfUrgent(symptomsList, redFlags = ["chest_pain", "severe_breathlessness"]) {
+  const hasStandard = symptomsList.some((s) => redFlags.includes(s));
+  if (hasStandard) return true;
 
-const LABELS = {
-  en: {
-    fever: "Fever", cough: "Cough", headache_dizziness: "Headache", fatigue: "Fatigue",
-    chest_pain: "Chest pain", severe_breathlessness: "Severe breathlessness",
-    nausea: "Nausea", vomiting: "Vomiting", frequent_thirst: "Frequent thirst",
-    frequent_urination: "Frequent urination", blurred_vision: "Blurred vision", numbness: "Others",
-  },
-  hi: {
-    fever: "बुखार", cough: "खांसी", headache_dizziness: "सिरदर्द", fatigue: "थकान",
-    chest_pain: "सीने में दर्द", severe_breathlessness: "सांस की तकलीफ",
-    nausea: "मतली", vomiting: "उल्टी", frequent_thirst: "बार-बार प्यास",
-    frequent_urination: "बार-बार पेशाब", blurred_vision: "धुंधला दिखना", numbness: "अन्य",
-  },
-};
+  const URGENT_PHRASES = [
+    "chest pain", "pain in chest", "heart pain", "breathlessness", "breathing difficulty",
+    "seene me dard", "chhati me dard", "saans lene me", "saans phoolna", "dam ghutna",
+    "सीने में दर्द", "छाती में दर्द", "सांस फूलना", "सांस लेने में तकलीफ", "दम घुटना"
+  ];
+  return symptomsList.some((s) => {
+    const lower = String(s).toLowerCase();
+    return URGENT_PHRASES.some((phrase) => lower.includes(phrase));
+  });
+}
 
 function Stepper({ step, isHindi }) {
   const steps = isHindi
     ? ["बेसिक जानकारी", "लक्षण", "वाइटल्स"]
     : ["Basic Info", "Symptoms", "Vitals"];
   const stepLabel = isHindi ? `चरण ${step} / 3` : `Step ${step} of 3`;
-  const progress = (step / 3) * 100;
 
   return (
-    <div className="flex flex-col items-center mb-10 w-full max-w-lg mx-auto">
-      <div className="flex items-center justify-between w-full mb-3 px-2">
+    <div className="flex flex-col items-center mb-8 w-full max-w-lg mx-auto">
+      <div className="flex items-center justify-between w-full mb-3 px-2 relative">
         {steps.map((label, i) => {
           const num = i + 1;
           const done = step > num;
@@ -65,12 +52,12 @@ function Stepper({ step, isHindi }) {
           );
         })}
         {/* Connecting Lines Behind */}
-        <div className="absolute top-5 left-[10%] right-[10%] h-0.5 bg-slate-200 -z-10 rounded-full overflow-hidden">
+        <div className="absolute top-5 left-[10%] right-[10%] h-0.5 bg-slate-200 -z-0 rounded-full overflow-hidden">
             <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${(step - 1) * 50}%` }} />
         </div>
       </div>
       
-      <div className="flex justify-between w-full mt-10 items-center px-4">
+      <div className="flex justify-between w-full mt-8 items-center px-4">
         <span className="text-xs font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase tracking-wider">
           {stepLabel}
         </span>
@@ -87,21 +74,120 @@ export default function SymptomForm({ lang }) {
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
+  const [typedSymptom, setTypedSymptom] = useState("");
   const [bp, setBp] = useState("");
   const [sugar, setSugar] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [urgentWarning, setUrgentWarning] = useState(false);
 
-  const isHindi = lang === "hi";
-  const labels = LABELS[lang] || LABELS.en;
+  // Dynamic symptoms fetched from backend
+  const [symptomsList, setSymptomsList] = useState([]);
+  const [loadingSymptoms, setLoadingSymptoms] = useState(true);
 
+  const isHindi = lang === "hi";
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSymptoms() {
+      setLoadingSymptoms(true);
+      try {
+        const data = await fetchSymptomsList();
+        if (isMounted) {
+          setSymptomsList(data);
+        }
+      } catch (err) {
+        console.error("Failed to load symptoms list:", err);
+      } finally {
+        if (isMounted) {
+          setLoadingSymptoms(false);
+        }
+      }
+    }
+    loadSymptoms();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Compute localized labels: { [key]: translatedName }
+  const labels = useMemo(() => {
+    const map = {};
+    symptomsList.forEach((s) => {
+      map[s.key] = s[lang] || s.en || s.key;
+    });
+    return map;
+  }, [symptomsList, lang]);
+
+  // Compute red-flag symptom keys dynamically from backend
+  const redFlagKeys = useMemo(() => {
+    return symptomsList
+      .filter((s) => s.isRedFlag)
+      .map((s) => s.key);
+  }, [symptomsList]);
+
+  // Toggle checkbox / item
   function toggleSymptom(key) {
     const next = selectedSymptoms.includes(key)
       ? selectedSymptoms.filter((s) => s !== key)
       : [...selectedSymptoms, key];
     setSelectedSymptoms(next);
-    setUrgentWarning(next.some((s) => DISPLAY_SYMPTOMS.find((x) => x.key === s)?.redFlag));
+    setUrgentWarning(checkIfUrgent(next, redFlagKeys));
+  }
+
+  // Remove any symptom tag
+  function removeSymptom(item) {
+    const next = selectedSymptoms.filter((s) => s !== item);
+    setSelectedSymptoms(next);
+    setUrgentWarning(checkIfUrgent(next, redFlagKeys));
+  }
+
+  // Clear all
+  function clearAll() {
+    setSelectedSymptoms([]);
+    setUrgentWarning(false);
+  }
+
+  // Voice speech detected handler
+  function handleVoiceDetected({ matchedKeys, customSymptoms }) {
+    setSelectedSymptoms((prev) => {
+      const combined = new Set(prev);
+      matchedKeys.forEach((k) => combined.add(k));
+      customSymptoms.forEach((cs) => {
+        const formatted = cs.charAt(0).toUpperCase() + cs.slice(1);
+        combined.add(formatted);
+      });
+      const next = Array.from(combined);
+      setUrgentWarning(checkIfUrgent(next, redFlagKeys));
+      return next;
+    });
+    setError("");
+  }
+
+  // Type symptom / Search bar add handler
+  function handleAddTypedSymptom(e) {
+    if (e) e.preventDefault();
+    const query = typedSymptom.trim();
+    if (!query) return;
+
+    const { matchedKeys } = matchSymptomsFromText(query);
+
+    setSelectedSymptoms((prev) => {
+      const combined = new Set(prev);
+      if (matchedKeys.length > 0) {
+        matchedKeys.forEach((k) => combined.add(k));
+      } else {
+        // Add as custom symptom
+        const formatted = query.charAt(0).toUpperCase() + query.slice(1);
+        combined.add(formatted);
+      }
+      const next = Array.from(combined);
+      setUrgentWarning(checkIfUrgent(next, redFlagKeys));
+      return next;
+    });
+
+    setTypedSymptom("");
+    setError("");
   }
 
   function nextStep() {
@@ -110,7 +196,11 @@ export default function SymptomForm({ lang }) {
       return;
     }
     if (step === 2 && selectedSymptoms.length === 0) {
-      setError(isHindi ? "कम से कम एक लक्षण चुनें।" : "Select at least one symptom.");
+      setError(
+        isHindi
+          ? "कम से कम एक लक्षण चुनें, बोलें या टाइप करें।"
+          : "Please select, speak, or type at least one symptom."
+      );
       return;
     }
     setError("");
@@ -140,31 +230,54 @@ export default function SymptomForm({ lang }) {
     }
   }
 
+  // Helper to render label for a selected symptom tag
+  function getSymptomTagLabel(item) {
+    if (labels[item]) {
+      const icon = getSymptomIcon(item);
+      return `${icon} ${labels[item]}`;
+    }
+    return `✨ ${item}`;
+  }
+
+  function isRedFlagSymptom(item) {
+    if (redFlagKeys.includes(item)) return true;
+    const lower = String(item).toLowerCase();
+    return (
+      lower.includes("chest") ||
+      lower.includes("chhati") ||
+      lower.includes("seene") ||
+      lower.includes("breath") ||
+      lower.includes("saans") ||
+      lower.includes("सीने") ||
+      lower.includes("सांस")
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 relative overflow-hidden py-10 flex flex-col justify-center items-center">
-        {/* Background glowing orbs */}
-        <div className="fixed top-[-10%] right-[-5%] w-[400px] h-[400px] rounded-full bg-green-300/20 blur-[100px] pointer-events-none"></div>
-        <div className="fixed bottom-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full bg-emerald-300/15 blur-[120px] pointer-events-none"></div>
+      {/* Background glowing orbs */}
+      <div className="fixed top-[-10%] right-[-5%] w-[400px] h-[400px] rounded-full bg-green-300/20 blur-[100px] pointer-events-none"></div>
+      <div className="fixed bottom-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full bg-emerald-300/15 blur-[120px] pointer-events-none"></div>
 
-      <div className="w-full max-w-2xl mx-auto relative z-10">
+      <div className="w-full max-w-3xl mx-auto relative z-10 px-4">
         
         {/* Glassmorphism Card */}
-        <div className="bg-white/80 backdrop-blur-xl border border-white rounded-3xl shadow-2xl shadow-green-900/5 p-8 sm:p-12">
+        <div className="bg-white/90 backdrop-blur-xl border border-white rounded-3xl shadow-2xl shadow-green-900/5 p-6 sm:p-10">
             
-            <Stepper step={step} isHindi={isHindi} />
+          <Stepper step={step} isHindi={isHindi} />
 
-            {urgentWarning && (
-              <div className="flex items-center gap-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-xl px-5 py-4 mb-8 text-sm shadow-sm animate-pulse">
-                <span className="text-xl">⚠️</span>
-                <span className="font-semibold">
-                  {isHindi
-                    ? "एक गंभीर लक्षण चुना गया है। कृपया पेशेवर देखभाल में देरी न करें।"
-                    : "A potentially serious symptom has been selected. Please do not delay professional care."}
-                </span>
-              </div>
-            )}
+          {urgentWarning && (
+            <div className="flex items-center gap-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-xl px-5 py-4 mb-8 text-sm shadow-sm animate-pulse">
+              <span className="text-xl">⚠️</span>
+              <span className="font-semibold">
+                {isHindi
+                  ? "आपातकालीन चेतावनी: एक गंभीर लक्षण चुना गया है (जैसे सीने में दर्द या सांस की तकलीफ)। कृपया तुरंत आपातकालीन चिकित्सा सहायता लें।"
+                  : "Emergency Warning: A potentially life-threatening symptom (such as chest pain or severe breathlessness) has been detected. Please seek immediate medical care."}
+              </span>
+            </div>
+          )}
 
-          {/* STEP 1 */}
+          {/* STEP 1: Basic Info */}
           {step === 1 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <h2 className="text-3xl font-extrabold text-slate-800 mb-2 text-center">
@@ -265,40 +378,192 @@ export default function SymptomForm({ lang }) {
             </div>
           )}
 
-          {/* STEP 2 */}
+          {/* STEP 2: Symptoms Input (Voice + Type + Checkboxes) */}
           {step === 2 && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-              <h2 className="text-3xl font-extrabold text-slate-800 mb-2 text-center">
-                {isHindi ? "आप क्या अनुभव कर रहे हैं?" : "What are you experiencing?"}
-              </h2>
-              <p className="text-slate-500 text-center mb-8 font-medium">{isHindi ? "सभी लागू विकल्प चुनें" : "Select all that apply"}</p>
               
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
-                {DISPLAY_SYMPTOMS.map((s) => {
-                  const checked = selectedSymptoms.includes(s.key);
-                  return (
-                    <button key={s.key} type="button" onClick={() => toggleSymptom(s.key)}
-                      className={`relative flex flex-col items-center justify-center p-5 rounded-2xl border-2 transition-all duration-200 hover:-translate-y-1
-                        ${s.redFlag && checked ? "border-rose-500 bg-rose-50 text-rose-800 shadow-md shadow-rose-100"
-                          : checked ? "border-green-500 bg-green-50 text-green-800 shadow-md shadow-green-100"
-                          : "border-slate-200 text-slate-600 hover:border-green-300 bg-white"}`}>
-                      {checked && (
-                        <span className={`absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-white
-                          ${s.redFlag ? "bg-rose-500" : "bg-green-600"}`}>
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>
-                        </span>
-                      )}
-                      <span className="text-3xl mb-2 filter drop-shadow-sm">{s.icon}</span>
-                      <span className="text-xs font-bold text-center leading-snug">{labels[s.key]}</span>
-                    </button>
-                  );
-                })}
+              <div className="text-center mb-6">
+                <h2 className="text-3xl font-extrabold text-slate-800 mb-2">
+                  {isHindi ? "आप क्या लक्षण अनुभव कर रहे हैं?" : "What symptoms are you experiencing?"}
+                </h2>
+                <p className="text-slate-500 text-sm font-medium">
+                  {isHindi
+                    ? "आवाज़ से बोलें, टाइप करें या नीचे दिए चेकबॉक्स से चुनें"
+                    : "Speak using voice, type in the box, or select checkboxes below"}
+                </p>
               </div>
+
+              {/* 1. VOICE INPUT COMPONENT */}
+              <VoiceSymptomButton
+                lang={lang}
+                labels={labels}
+                onSymptomsDetected={handleVoiceDetected}
+              />
+
+              {/* 2. TYPE / SEARCH SYMPTOM INPUT */}
+              <div className="mb-6">
+                <form onSubmit={handleAddTypedSymptom} className="flex gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </span>
+                    <input
+                      type="text"
+                      value={typedSymptom}
+                      onChange={(e) => setTypedSymptom(e.target.value)}
+                      placeholder={
+                        isHindi
+                          ? "लक्षण टाइप करें या खोजें (जैसे: बुखार, पेट दर्द, खांसी)..."
+                          : "Type a symptom or search (e.g., Fever, Stomach ache)..."
+                      }
+                      className="w-full border border-slate-200 rounded-xl pl-11 pr-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white shadow-sm transition-all"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={!typedSymptom.trim()}
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold px-6 py-3.5 rounded-xl text-sm transition-all shadow-md shadow-emerald-600/20 flex items-center gap-1.5 flex-shrink-0"
+                  >
+                    <span>+</span>
+                    <span>{isHindi ? "जोड़ें" : "Add"}</span>
+                  </button>
+                </form>
+              </div>
+
+              {/* 3. SELECTED SYMPTOMS PILLS BAR */}
+              {selectedSymptoms.length > 0 && (
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      {isHindi ? "चुने गए लक्षण" : "Selected Symptoms"} ({selectedSymptoms.length})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={clearAll}
+                      className="text-xs text-rose-500 hover:text-rose-700 font-semibold transition-colors"
+                    >
+                      {isHindi ? "सभी हटाएं" : "Clear All"}
+                    </button>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {selectedSymptoms.map((item) => {
+                      const isUrgent = isRedFlagSymptom(item);
+                      return (
+                        <span
+                          key={item}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all
+                            ${isUrgent
+                              ? "bg-rose-100 text-rose-800 border-rose-300 shadow-sm shadow-rose-100"
+                              : "bg-white text-emerald-800 border-emerald-300 shadow-sm"
+                            }`}
+                        >
+                          <span>{getSymptomTagLabel(item)}</span>
+                          {isUrgent && <span className="text-[10px] bg-rose-500 text-white px-1.5 py-0.2 rounded-md">⚠️</span>}
+                          <button
+                            type="button"
+                            onClick={() => removeSymptom(item)}
+                            className="hover:text-rose-600 font-bold ml-1 text-sm leading-none"
+                            title={isHindi ? "हटाएं" : "Remove"}
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 4. VISUAL CHECKBOX CARDS GRID */}
+              <div className="mb-2">
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    {isHindi ? "त्वरित चयन चेकबॉक्स (क्लिक करें)" : "Quick Checklist (Click to select)"}
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    {isHindi ? "कई विकल्प चुन सकते हैं" : "Multi-select enabled"}
+                  </span>
+                </div>
+
+                {loadingSymptoms ? (
+                  /* Loading skeleton cards */
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 mb-6">
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                      <div
+                        key={n}
+                        className="h-28 rounded-2xl border-2 border-slate-100 bg-slate-50/70 p-4 flex flex-col items-center justify-center animate-pulse"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-slate-200 mb-2"></div>
+                        <div className="h-3 w-16 bg-slate-200 rounded"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 mb-6">
+                    {symptomsList.map((s) => {
+                      const checked = selectedSymptoms.includes(s.key);
+                      const symptomLabel = labels[s.key] || s.en || s.key;
+                      const icon = getSymptomIcon(s.key);
+                      const isHighlighted =
+                        typedSymptom.trim().length > 1 &&
+                        (symptomLabel.toLowerCase().includes(typedSymptom.toLowerCase()) ||
+                          s.key.toLowerCase().includes(typedSymptom.toLowerCase()));
+
+                      return (
+                        <button
+                          key={s.key}
+                          type="button"
+                          onClick={() => toggleSymptom(s.key)}
+                          className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-200 hover:-translate-y-0.5 text-center
+                            ${s.isRedFlag && checked
+                              ? "border-rose-500 bg-rose-50 text-rose-900 shadow-md shadow-rose-100 ring-2 ring-rose-300"
+                              : checked
+                              ? "border-emerald-500 bg-emerald-50 text-emerald-900 shadow-md shadow-emerald-100 ring-2 ring-emerald-300"
+                              : isHighlighted
+                              ? "border-amber-400 bg-amber-50 text-amber-900 shadow-sm"
+                              : "border-slate-200 text-slate-700 hover:border-emerald-300 bg-white hover:bg-slate-50/50"
+                            }`}
+                        >
+                          {/* Checkbox badge */}
+                          <div className={`absolute top-2.5 right-2.5 w-5 h-5 rounded-lg flex items-center justify-center border transition-colors
+                            ${checked
+                              ? (s.isRedFlag ? "bg-rose-500 border-rose-500 text-white" : "bg-emerald-600 border-emerald-600 text-white")
+                              : "border-slate-300 bg-white"
+                            }`}
+                          >
+                            {checked && (
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+
+                          {s.isRedFlag && (
+                            <span className="absolute top-2.5 left-2.5 text-[10px] font-extrabold bg-rose-100 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded">
+                              {isHindi ? "गंभीर" : "Urgent"}
+                            </span>
+                          )}
+
+                          <span className="text-3xl my-1.5 filter drop-shadow-sm">{icon}</span>
+                          <span className="text-xs font-bold leading-tight line-clamp-2 mt-1">
+                            {symptomLabel}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {error && <p className="text-red-500 text-sm mt-4 font-medium text-center">{error}</p>}
             </div>
           )}
 
-          {/* STEP 3 */}
+          {/* STEP 3: Vitals */}
           {step === 3 && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
               <h2 className="text-3xl font-extrabold text-slate-800 mb-2 text-center">
@@ -370,8 +635,8 @@ export default function SymptomForm({ lang }) {
             )}
           </div>
 
-        </div>{/* end card */}
-      </div>{/* end max-w-2xl */}
+        </div>
+      </div>
     </div>
   );
 }
