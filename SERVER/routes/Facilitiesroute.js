@@ -27,6 +27,8 @@ router.get("/nearby", async (req, res) => {
       return res.status(400).json({ error: "lat and lng query params are required" });
     }
 
+    console.log(`📍 [Facilities API] Nearby search requested for coords: lat=${userLat}, lng=${userLng}`);
+
     // For a country-wide static set, fetching all and sorting in JS is fine
     // (dataset is small — a few hundred rows at most for a hackathon demo).
     const facilities = await Facility.find({}).lean();

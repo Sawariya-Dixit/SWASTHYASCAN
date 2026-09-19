@@ -78,6 +78,7 @@ export default function NearestFacilities({ isHindi }) {
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        console.log("📍 [NearestFacilities] Browser Live Location Detected: lat =", pos.coords.latitude, "lng =", pos.coords.longitude);
         loadFacilitiesForCoords(pos.coords.latitude, pos.coords.longitude);
       },
       (err) => {

@@ -87,6 +87,17 @@ export default function SymptomForm({ lang }) {
 
   const isHindi = lang === "hi";
 
+  // Automatically scroll to top whenever the form step changes (Step 1 -> 2 -> 3 or back)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    if (document.documentElement) {
+      document.documentElement.scrollTop = 0;
+    }
+    if (document.body) {
+      document.body.scrollTop = 0;
+    }
+  }, [step]);
+
   useEffect(() => {
     let isMounted = true;
     async function loadSymptoms() {

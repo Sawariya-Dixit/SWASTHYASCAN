@@ -11,7 +11,14 @@ export default function Navbar({ lang, setLang, t }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 sm:gap-3 group" onClick={() => setIsMobileMenuOpen(false)}>
+          <Link
+            to="/"
+            className="flex items-center gap-2 sm:gap-3 group"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          >
             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-600 rounded-xl flex items-center justify-center shadow-md shadow-green-600/20 group-hover:shadow-green-600/40 group-hover:scale-105 transition-all duration-300">
               <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 sm:w-6 sm:h-6 text-white" stroke="currentColor" strokeWidth="2">
                 <path d="M12 21C12 21 4 13.5 4 8a8 8 0 0116 0c0 5.5-8 13-8 13z" strokeLinecap="round" strokeLinejoin="round"/>
@@ -25,6 +32,7 @@ export default function Navbar({ lang, setLang, t }) {
           <div className="hidden md:flex items-center gap-8">
             <Link
               to="/"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               className={`text-sm font-bold transition-all relative ${active("/") ? "text-green-600" : "text-slate-500 hover:text-green-600"}`}
             >
               {t.home}
