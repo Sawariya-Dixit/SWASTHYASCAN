@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import NearestFacilities from "../components/NearestFacilities";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 const riskConfig = {
@@ -66,6 +67,9 @@ export default function Result({ t }) {
                 </a>
               </div>
             </div>
+
+            {/* Nearest PHC / Hospital suggestion for Urgent cases */}
+            <NearestFacilities isHindi={isHindi} />
 
             <div className="pt-4 text-center border-t border-slate-100">
               <button onClick={() => navigate("/")} className="text-sm font-semibold text-slate-500 hover:text-green-600 inline-flex items-center gap-2 transition-colors">
@@ -179,6 +183,9 @@ export default function Result({ t }) {
                 </div>
 
               </div>
+
+              {/* Nearest PHC / Hospital suggestion for High Risk results */}
+              {riskLevel === "High" && <NearestFacilities isHindi={isHindi} />}
             </div>
 
             {/* Right: Screening summary profile */}
