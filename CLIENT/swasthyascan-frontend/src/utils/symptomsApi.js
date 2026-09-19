@@ -70,7 +70,7 @@ export async function fetchSymptomsList() {
     if (res.data?.data && Array.isArray(res.data.data)) {
       return res.data.data;
     }
-  } catch (err) {
+  } catch (_err) {
     // Try alternate endpoint
     try {
       const altRes = await axios.get(`${API_BASE}/api/symptoms-list`, { timeout: 3000 });
