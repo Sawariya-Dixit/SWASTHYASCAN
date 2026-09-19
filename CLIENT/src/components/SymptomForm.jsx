@@ -225,7 +225,7 @@ export default function SymptomForm({ lang }) {
       const payload = {
         deviceId: getDeviceId(),
         screenedFor,
-        name: screenedFor === "other" ? name : undefined,
+        name: name.trim() || undefined,
         age: Number(age),
         gender,
         symptoms: selectedSymptoms,
