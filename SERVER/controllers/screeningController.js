@@ -193,14 +193,14 @@ async function getHistory(req, res) {
     }
 
     // =========================================
-    // GET LAST 5 SCREENINGS
+    // GET LAST 10 SCREENINGS
     // =========================================
 
     const records = await ScreeningRecord.find({
       deviceId,
     })
       .sort({ createdAt: -1 })
-      .limit(5);
+      .limit(10);
 
     // =========================================
     // REPEAT PATTERN CHECK
