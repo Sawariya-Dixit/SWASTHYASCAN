@@ -5,7 +5,7 @@ import strings from "../i18n";
 import { getSymptomIcon } from "../utils/symptomsApi";
 import RiskTrendChart from "../components/RiskTrendChart";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:5000").replace(/\/+$/, "");
 
 const riskBadge = {
   Low: "bg-emerald-50 text-emerald-700 border-emerald-300 shadow-2xs",

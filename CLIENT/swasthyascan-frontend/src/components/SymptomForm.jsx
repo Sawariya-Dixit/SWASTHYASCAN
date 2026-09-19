@@ -6,7 +6,7 @@ import VoiceSymptomButton from "./VoiceSymptomButton";
 import { matchSymptomsFromText } from "../utils/voiceSymptomMatcher";
 import { fetchSymptomsList, getSymptomIcon } from "../utils/symptomsApi";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:5000").replace(/\/+$/, "");
 
 function checkIfUrgent(symptomsList, redFlags = ["chest_pain", "severe_breathlessness"]) {
   const hasStandard = symptomsList.some((s) => redFlags.includes(s));
