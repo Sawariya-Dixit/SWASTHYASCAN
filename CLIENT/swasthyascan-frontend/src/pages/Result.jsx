@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import NearestFacilities from "../components/NearestFacilities";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:5000").replace(/\/+$/, "");
 const riskConfig = {
   Low:    { bg: "bg-green-50",  border: "border-green-200",  icon: "✅", iconBg: "bg-green-100",  text: "text-green-700",  label: "LOW RISK" },
   Medium: { bg: "bg-amber-50", border: "border-amber-200", icon: "⚠️", iconBg: "bg-amber-100", text: "text-amber-700", label: "MEDIUM RISK" },

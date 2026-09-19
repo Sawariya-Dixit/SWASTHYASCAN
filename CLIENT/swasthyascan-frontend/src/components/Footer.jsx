@@ -148,13 +148,19 @@ export default function Footer({ lang }) {
           </p>
         </div>
 
-        {/* Bottom Copyright Row */}
-        <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+        {/* Bottom Copyright & Credits Row */}
+        <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-slate-500">
           <p>
             © {new Date().getFullYear()} SwasthyaScan. {isHindi ? "सर्वाधिकार सुरक्षित।" : "All rights reserved."}
           </p>
-          <p className="flex items-center gap-1 text-slate-400">
-            <span>{isHindi ? "भारत में स्वास्थ्य सशक्तिकरण हेतु समर्पित" : "Dedicated to Community Healthcare Empowerment"}</span>
+
+          <p className="flex items-center gap-1.5 text-slate-400">
+            <span>{isHindi ? "द्वारा निर्मित:" : "Crafted by"}</span>
+            <span className="text-slate-300 font-medium">Sawariya & Amisha</span>
+          </p>
+
+          <p className="flex items-center gap-1.5 text-slate-400">
+            <span>{isHindi ? "भारत में स्वास्थ्य सशक्तिकरण" : "Empowering Healthcare in India"}</span>
             <span>🇮🇳</span>
           </p>
         </div>

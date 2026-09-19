@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:5000").replace(/\/+$/, "");
 
 // Curated UI icons for standard symptoms, with fallback support for dynamic symptoms
 export const SYMPTOM_ICONS = {
