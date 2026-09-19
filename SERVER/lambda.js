@@ -12,7 +12,7 @@ const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/database");
 const screeningRoutes = require("./routes/screening");
-
+const facilitiesRoutes = require("./routes/Facilitiesroute");
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -22,6 +22,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/v1", screeningRoutes);
+app.use("/api/v1/facilities", facilitiesRoutes);
 
 let isConnected = false;
 
