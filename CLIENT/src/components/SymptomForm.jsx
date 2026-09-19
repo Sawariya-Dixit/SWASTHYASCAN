@@ -8,20 +8,26 @@ import { fetchSymptomsList, getSymptomIcon } from "../utils/symptomsApi";
 
 const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:5000").replace(/\/+$/, "");
 
-function checkIfUrgent(symptomsList, redFlags = ["chest_pain", "severe_breathlessness"]) {
-  const hasStandard = symptomsList.some((s) => redFlags.includes(s));
+/**
+ * Backend-driven urgent red-flag checker.
+ * Validates selected symptom keys and typed/free-text inputs against
+ * backend-supplied red-flag keys and keywords without hardcoded strings.
+ */
+function checkIfUrgent(selectedList = [], redFlags = [], redKeywords = []) {
+  if (!Array.isArray(selectedList) || selectedList.length === 0) return false;
+
+  // 1. Direct standard key match
+  const hasStandard = selectedList.some((s) => redFlags.includes(s));
   if (hasStandard) return true;
 
-  const URGENT_PHRASES = [
-    "chest pain", "pain in chest", "heart pain", "breathlessness", "breathing difficulty",
-    "seene me dard", "chhati me dard", "saans lene me", "saans phoolna", "dam ghutna",
-    "सीने में दर्द", "छाती में दर्द", "सांस फूलना", "सांस लेने में तकलीफ", "दम घुटना"
-  ];
-  return symptomsList.some((s) => {
-    const lower = String(s).toLowerCase();
-    return URGENT_PHRASES.some((phrase) => lower.includes(phrase));
+  // 2. Keyword/phrase match for free-text or custom typed entries
+  if (!Array.isArray(redKeywords) || redKeywords.length === 0) return false;
+  return selectedList.some((s) => {
+    const lower = String(s).toLowerCase().trim();
+    return redKeywords.some((kw) => lower.includes(kw.toLowerCase()));
   });
 }
+
 
 function Stepper({ step, isHindi }) {
   const steps = isHindi
@@ -137,20 +143,41 @@ export default function SymptomForm({ lang }) {
       .map((s) => s.key);
   }, [symptomsList]);
 
+  // Compute red-flag keywords dynamically from backend symptomsList (Single Source of Truth)
+  const redFlagKeywords = useMemo(() => {
+    const list = [];
+    symptomsList
+      .filter((s) => s.isRedFlag)
+      .forEach((s) => {
+        if (Array.isArray(s.keywords)) {
+          list.push(...s.keywords);
+        }
+        if (s.en) list.push(s.en);
+        if (s.hi) list.push(s.hi);
+        if (s.key) list.push(s.key.replace(/_/g, " "));
+      });
+    return Array.from(new Set(list.map((k) => k.toLowerCase().trim()))).filter(Boolean);
+  }, [symptomsList]);
+
+  // Keep urgent warning synchronized whenever selected symptoms or backend red flags update
+  useEffect(() => {
+    setUrgentWarning(checkIfUrgent(selectedSymptoms, redFlagKeys, redFlagKeywords));
+  }, [selectedSymptoms, redFlagKeys, redFlagKeywords]);
+
   // Toggle checkbox / item
   function toggleSymptom(key) {
     const next = selectedSymptoms.includes(key)
       ? selectedSymptoms.filter((s) => s !== key)
       : [...selectedSymptoms, key];
     setSelectedSymptoms(next);
-    setUrgentWarning(checkIfUrgent(next, redFlagKeys));
+    setUrgentWarning(checkIfUrgent(next, redFlagKeys, redFlagKeywords));
   }
 
   // Remove any symptom tag
   function removeSymptom(item) {
     const next = selectedSymptoms.filter((s) => s !== item);
     setSelectedSymptoms(next);
-    setUrgentWarning(checkIfUrgent(next, redFlagKeys));
+    setUrgentWarning(checkIfUrgent(next, redFlagKeys, redFlagKeywords));
   }
 
   // Clear all
@@ -169,7 +196,7 @@ export default function SymptomForm({ lang }) {
         combined.add(formatted);
       });
       const next = Array.from(combined);
-      setUrgentWarning(checkIfUrgent(next, redFlagKeys));
+      setUrgentWarning(checkIfUrgent(next, redFlagKeys, redFlagKeywords));
       return next;
     });
     setError("");
@@ -193,7 +220,7 @@ export default function SymptomForm({ lang }) {
         combined.add(formatted);
       }
       const next = Array.from(combined);
-      setUrgentWarning(checkIfUrgent(next, redFlagKeys));
+      setUrgentWarning(checkIfUrgent(next, redFlagKeys, redFlagKeywords));
       return next;
     });
 
@@ -218,9 +245,23 @@ export default function SymptomForm({ lang }) {
     setStep((s) => s + 1);
   }
 
-  async function handleSubmit() {
+  function prevStep() {
+    setError("");
+    setStep((s) => s - 1);
+  }
+
+  async function handleSubmit(e) {
+    if (e && typeof e.preventDefault === "function") {
+      e.preventDefault();
+    }
+    if (step < 3) {
+      nextStep();
+      return;
+    }
+
     setLoading(true);
     setError("");
+
     try {
       const payload = {
         deviceId: getDeviceId(),
@@ -229,13 +270,25 @@ export default function SymptomForm({ lang }) {
         age: Number(age),
         gender,
         symptoms: selectedSymptoms,
-        vitals: { bp: bp || undefined, sugar: sugar ? Number(sugar) : undefined },
+        vitals: {
+          bp: bp.trim() || undefined,
+          sugar: sugar ? Number(sugar) : undefined,
+        },
         language: lang,
       };
-      const { data } = await axios.post(`${API_BASE}/api/v1/screening`, payload);
-      navigate("/result", { state: { result: data, payload } });
-    } catch {
-      setError(isHindi ? "कुछ गलत हुआ। दोबारा कोशिश करें।" : "Something went wrong. Please try again.");
+
+      const res = await axios.post(`${API_BASE}/api/v1/screening`, payload, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      navigate("/result", { state: { result: res.data, payload } });
+    } catch (err) {
+      console.error(err);
+      setError(
+        isHindi
+          ? "स्क्रीनिंग सबमिट करने में विफल। कृपया पुन: प्रयास करें।"
+          : "Failed to submit screening. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -250,18 +303,12 @@ export default function SymptomForm({ lang }) {
     return `✨ ${item}`;
   }
 
+  // Backend-driven check for whether an individual symptom tag is urgent
   function isRedFlagSymptom(item) {
     if (redFlagKeys.includes(item)) return true;
-    const lower = String(item).toLowerCase();
-    return (
-      lower.includes("chest") ||
-      lower.includes("chhati") ||
-      lower.includes("seene") ||
-      lower.includes("breath") ||
-      lower.includes("saans") ||
-      lower.includes("सीने") ||
-      lower.includes("सांस")
-    );
+    if (!item) return false;
+    const lower = String(item).toLowerCase().trim();
+    return redFlagKeywords.some((kw) => lower.includes(kw));
   }
 
   return (

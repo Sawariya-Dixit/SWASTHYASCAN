@@ -18,6 +18,18 @@ export default function VoiceSymptomButton({ lang, onSymptomsDetected, labels })
     if (!SpeechRecognition) {
       setIsSupported(false);
     }
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (_e) {
+          // ignore
+        }
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
   }, []);
 
   function startListening() {
