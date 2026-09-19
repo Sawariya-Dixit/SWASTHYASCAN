@@ -5,6 +5,7 @@ import Home from "./pages/Home";
 import Result from "./pages/Result";
 import History from "./pages/History";
 import SymptomForm from "./components/SymptomForm";
+import ScrollToTop from "./components/ScrollToTop";
 import strings from "./i18n";
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <div className="min-h-screen bg-gray-50">
         <Navbar lang={lang} setLang={setLang} t={t} />
         <Routes>
