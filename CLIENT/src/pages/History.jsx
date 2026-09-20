@@ -143,7 +143,7 @@ function DetailModal({ record, onClose, lang }) {
         {/* PDF Download Button */}
         <div className="pt-2">
           <a
-            href={`${API_BASE}/api/v1/${record._id}/summary`}
+            href={`${API_BASE}/api/v1/${record._id}/summary?deviceId=${getDeviceId()}`}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3.5 rounded-2xl transition-all shadow-lg shadow-green-600/20 hover:shadow-green-600/30 hover:-translate-y-0.5 text-xs cursor-pointer"
