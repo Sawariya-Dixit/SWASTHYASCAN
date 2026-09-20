@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import NearestFacilities from "../components/NearestFacilities";
+import { getDeviceId } from "../deviceId";
 
 const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:5000").replace(/\/+$/, "");
 const riskConfig = {
@@ -244,7 +245,7 @@ export default function Result({ t }) {
               
               {result.recordId && (
                 <a
-                  href={`${API_BASE}/api/v1/${result.recordId}/summary`}
+                 href={`${API_BASE}/api/v1/${result.recordId}/summary?deviceId=${getDeviceId()}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2"
