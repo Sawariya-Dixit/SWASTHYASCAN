@@ -141,19 +141,27 @@ function DetailModal({ record, onClose, lang }) {
         )}
 
         {/* PDF Download Button */}
-        <div className="pt-2">
-          <a
-            href={`${API_BASE}/api/v1/${record._id}/summary?deviceId=${getDeviceId()}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3.5 rounded-2xl transition-all shadow-lg shadow-green-600/20 hover:shadow-green-600/30 hover:-translate-y-0.5 text-xs cursor-pointer"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            <span>{isHindi ? "पूरी PDF रिपोर्ट डाउनलोड करें" : "Download Full PDF Report"}</span>
-          </a>
-        </div>
+        {/* PDF Download Button */}
+<div className="pt-2">
+  <button
+    onClick={() => {
+      const url = `${API_BASE}/api/v1/${record._id}/summary?deviceId=${getDeviceId()}`;
+      const link = document.createElement("a");
+      link.href = url;
+      link.rel = "noopener noreferrer";
+      // target="_blank" hataya -> naya tab/blank flash nahi aayega
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }}
+    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3.5 rounded-2xl transition-all shadow-lg shadow-green-600/20 hover:shadow-green-600/30 hover:-translate-y-0.5 text-xs cursor-pointer"
+  >
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+    </svg>
+    <span>{isHindi ? "पूरी PDF रिपोर्ट डाउनलोड करें" : "Download Full PDF Report"}</span>
+  </button>
+</div>
       </div>
     </div>
   );
