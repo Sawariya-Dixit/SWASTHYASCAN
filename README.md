@@ -94,9 +94,9 @@ Set `VITE_API_BASE` in `.env` to your backend URL (local or deployed).
 
 ## Team
 
-- **[Your Name]** — Backend: API design, AI integration, database models,
+- **Sawariya Dixit** — Backend: API design, AI integration, database models,
   PDF/report generation, AWS Lambda deployment and configuration
-- **[Friend's Name]** — Frontend: UI/UX, all React pages and components,
+- **Amisha Jat** — Frontend: UI/UX, all React pages and components,
   voice input, AWS Amplify deployment
 
 ## Hackathon Notes
