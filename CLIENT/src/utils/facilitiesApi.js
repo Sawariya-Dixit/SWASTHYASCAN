@@ -30,7 +30,7 @@ export async function fetchNearbyFacilities(lat, lng) {
     try {
       const altRes = await axios.get(`${API_BASE}/api/facilities/nearby`, {
         params: { lat, lng },
-        timeout: 5000,
+        timeout: 8000,
       });
       if (Array.isArray(altRes.data)) {
         return altRes.data;
