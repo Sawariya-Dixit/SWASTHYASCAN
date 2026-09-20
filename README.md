@@ -1,69 +1,7 @@
 
-# SwasthyaScan
-
-AI-powered preliminary health risk screener for underserved communities.
-Built for **First Commit — Bharat Builds Tour 2026**.
-
-## Problem
-
-Millions of people, especially in rural and semi-urban India, cannot reach a
-doctor in time — due to distance, cost, or lack of awareness. SwasthyaScan
-lets anyone (or an ASHA worker / family member on their behalf) enter
-symptoms and basic vitals, and instantly get an AI-generated risk level with
-clear, simple next-step guidance.
-
-## Project Structure
-
-```
-SwasthyaScan/
-├── client/     → React frontend (form, result dashboard, history)
-└── server/     → Node.js + Express backend (API, Bedrock AI, MongoDB)
-```
-
-Each folder has its own `README.md` with setup details specific to it.
-This file covers the project as a whole.
-
-## Tech Stack
-
-| Layer     | Technology |
-|-----------|------------|
-| Frontend  | React |
-| Backend   | Node.js + Express |
-| Database  | MongoDB (Atlas) |
-| AI Engine | Amazon Bedrock |
-| Hosting   | AWS Amplify (frontend) + Lambda/API Gateway or EC2 (backend) |
-
-## Core Features
-
-- Symptom + vitals input form
-- AI-powered risk assessment (Low / Medium / High) via Amazon Bedrock
-- **Red-flag safety layer** — emergency symptoms (chest pain, severe
-  breathlessness) trigger an instant urgent-care warning, bypassing the AI
-  entirely, since safety-critical decisions shouldn't depend on unpredictable
-  model output
-- **"Why this risk?"** — the AI explains which specific factors led to the
-  result, instead of just showing a label
-- **ASHA / Family Mode** — screen for yourself or for someone else
-- History of past screenings (no login required — uses an anonymous
-  device ID stored in the browser)
-- Hindi / English toggle
-
-## How the Two Folders Talk to Each Other
-
-```
-client (React, on Amplify)
-   │
-   │  HTTP requests (Axios/Fetch)
-   ▼
-server (Express, on Lambda/EC2)
-   │
-   ├──► Amazon Bedrock   (AI risk assessment)
-   └──► MongoDB Atlas    (stores screening records)
-```
-
-The client never calls Bedrock or MongoDB directly — everything goes
-through the server's API endpoints. See `server/README.md` for the exact
-API contract (request/response shapes) the frontend should use.
+The client never calls Groq or MongoDB directly — everything goes through
+the server's API endpoints (`/api/v1/screening`, `/api/v1/history`,
+`/api/v1/facilities`, `/api/v1/:id/summary`).
 
 ## Running the Project Locally
 
@@ -71,36 +9,38 @@ API contract (request/response shapes) the frontend should use.
 ```bash
 cd server
 npm install
-cp .env.example .env   # fill in MongoDB URI + AWS credentials
+cp .env.example .env   # fill in MONGO_URI + GROQ_API_KEY
 npm run dev
 ```
 Runs on `http://localhost:5000`
 
 **2. Start the frontend:**
 ```bash
-cd client
+cd CLIENT
 npm install
-npm start
+npm run dev
 ```
-Point the frontend's API base URL to `http://localhost:5000/api` during
-local development.
+Set `VITE_API_BASE` in `.env` to your backend URL (local or deployed).
 
-## Deployment Plan
+## Deployment
 
-- **Frontend** → AWS Amplify Hosting (connect this GitHub repo, auto-deploys
-  the `client` folder on push)
-- **Backend** → AWS Lambda + API Gateway (using `server/lambda.js`), or a
-  simple EC2/Render instance if Lambda setup takes too long
-- **Database** → MongoDB Atlas free tier
-- **AI** → Amazon Bedrock (Claude 3 Haiku model)
+- **Frontend** → AWS Amplify Hosting, connected to this GitHub repo —
+  auto-deploys the `CLIENT` folder on every push to `main`
+- **Backend** → AWS Lambda (via `server/lambda.js` + `serverless-http`),
+  exposed through Amazon API Gateway (HTTP API)
+- **Database** → MongoDB Atlas (free tier)
+- **AI** → Groq API (`openai/gpt-oss-120b`)
 
 ## Team
 
-Solo build — frontend and backend split for parallel development during
-the hackathon.
+- **[Your Name]** — Backend: API design, AI integration, database models,
+  PDF/report generation, AWS Lambda deployment and configuration
+- **[Friend's Name]** — Frontend: UI/UX, all React pages and components,
+  voice input, AWS Amplify deployment
 
 ## Hackathon Notes
 
-- AI tools used during development should be listed in the final writeup
-- Demo video (max 3 minutes) must clearly show AWS being used — Bedrock and
-  Amplify both need to be visible/explained, not just named in text
+- Built end-to-end over 4 days as our first hands-on deployment on AWS
+  Lambda, API Gateway, and Amplify
+- Demo video (max 3 minutes) shows the full screening flow, the urgent
+  red-flag path, and where AWS (Lambda, API Gateway, Amplify) fits in
